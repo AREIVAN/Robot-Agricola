@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Robot Agrícola</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    #map { height: 420px; border-radius: 12px; }
+    .card { padding: 12px; border: 1px solid #ddd; border-radius: 12px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+
+<body>
+  <h2>Dashboard Robot Agrícola</h2>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Mapa GPS</h3>
+      <div id="map"></div>
+      <p id="status">Cargando…</p>
+    </div>
+
+    <div class="card">
+      <h3>Temperatura / Humedad</h3>
+      <canvas id="thChart"></canvas>
+    </div>
+  </div>
+
+<script>
+  const CHANNEL_ID = 3200807;
+  const READ_KEY = "CZ108T3YGUBC67J3";
+  const RESULTS = 200;
+  const REFRESH_MS = 15000;
+
+  const FEEDS_URL = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_KEY}&results=${RESULTS}`;
+
+  // MAPA
+  const map = L.map('map').setView([19.4326, -99.1332], 19);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20
+  }).addTo(map);
+
+  let marker = null;
+  let polyline = null;
+
+  // CHART
+  const ctx = document.getElementById('thChart');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Temp (°C)', data: [], borderWidth: 2 },
+        { label: 'Hum (%)', data: [], borderWidth: 2 }
+      ]
+    },
+    options: { responsive: true }
+  });
+
+  async function refresh() {
+    const res = await fetch(FEEDS_URL);
+    const json = await res.json();
+    const feeds = json.feeds || [];
+
+    const points = [];
+    const labels = [];
+    const temp = [];
+    const hum = [];
+
+    feeds.forEach(f => {
+      const lat = Number(f.field3);
+      const lon = Number(f.field4);
+      if (lat && lon) points.push([lat, lon]);
+
+      labels.push(new Date(f.created_at).toLocaleTimeString());
+      temp.push(Number(f.field1));
+      hum.push(Number(f.field2));
+    });
+
+    if (points.length > 0) {
+      const last = points[points.length - 1];
+
+      if (!marker) marker = L.marker(last).addTo(map);
+      else marker.setLatLng(last);
+
+      if (polyline) polyline.remove();
+      polyline = L.polyline(points).addTo(map);
+
+      map.setView(last, 19);
+      document.getElementById('status').textContent =
+        `Última posición: ${last[0].toFixed(6)}, ${last[1].toFixed(6)}`;
+    }
+
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = temp;
+    chart.data.datasets[1].data = hum;
+    chart.update();
+  }
+
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>
