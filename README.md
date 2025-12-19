@@ -3,6 +3,9 @@
 Proyecto de ingeniería orientado al diseño y desarrollo de una **plataforma robótica autónoma para aplicaciones agrícolas**, enfocada en adquisición de datos, operación en entornos con conectividad limitada y visualización mediante una interfaz web embebida.
 
 El sistema está diseñado con un enfoque **modular y escalable**, permitiendo su adaptación a distintas tareas agrícolas como monitoreo, análisis del entorno y futuras integraciones con inteligencia artificial.
+
+En el siguiente enlace podemos ver el dashboard que visualizara el cliente final para el monitoreo de los sensores
+https://areivan.github.io/Robot-Agricola/
 ---
 ## 🎯 Objetivo del proyecto
 
